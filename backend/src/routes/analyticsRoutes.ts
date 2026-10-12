@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { getDashboardStats } from '../controllers/analyticsController';
+import { getAnalytics } from '../controllers/analyticsController';
 
 const router = Router();
-router.get('/', getDashboardStats);
+router.get('/', getAnalytics);
 
 export default router;

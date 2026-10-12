@@ -2,25 +2,59 @@ import { Request, Response } from 'express';
 import Household from '../models/Household';
 import Resident from '../models/Resident';
 
-export const getDashboardStats = async (req: Request, res: Response): Promise<void> => {
+export const getAnalytics = async (req: Request, res: Response) => {
   try {
-    // 1. Tổng số hộ & Số hộ tham gia Zalo
     const totalHouseholds = await Household.countDocuments();
-    const zaloJoined = await Household.countDocuments({ zaloGroupJoined: true });
+    const households = await Household.find();
+    
+    const residents = await Resident.find();
+    const totalResidents = residents.length;
 
-    // 2. Thống kê tình trạng cư trú
-    const totalResidents = await Resident.countDocuments();
-    const thuongTru = await Resident.countDocuments({ residencyStatus: 'Thường trú' });
-    const tamTru = await Resident.countDocuments({ residencyStatus: 'Tạm trú' });
-    const tamVang = await Resident.countDocuments({ residencyStatus: 'Tạm vắng' });
+    const zaloJoined = households.filter(h => h.zaloGroupJoined).length;
+    const zaloNotJoined = totalHouseholds - zaloJoined;
 
-    // Trả về một object tổng hợp để vẽ biểu đồ
+    // Thống kê cư trú
+    const thuongTru = residents.filter(r => r.residencyStatus === 'Thường trú').length;
+    const tamTru = residents.filter(r => r.residencyStatus === 'Tạm trú').length;
+    const tamVang = residents.filter(r => r.residencyStatus === 'Tạm vắng').length;
+
+    // Thống kê Giới tính
+    const nam = residents.filter(r => r.gender === 'Nam').length;
+    const nu = residents.filter(r => r.gender === 'Nữ').length;
+
+    // Thống kê Đoàn viên & Thiếu nhi
+    let doanVien = 0;
+    let thieuNhi = 0;
+    const currentYear = new Date().getFullYear();
+
+    residents.forEach(r => {
+      // Đếm Đoàn viên (dựa vào tags)
+      if (r.tags && r.tags.some(tag => tag.toLowerCase().includes('đoàn viên'))) {
+        doanVien++;
+      }
+      
+      // Đếm Thiếu nhi (dựa vào tags hoặc tự động tính tuổi dưới 16)
+      let isThieuNhi = false;
+      if (r.tags && r.tags.some(tag => tag.toLowerCase().includes('thiếu nhi'))) {
+        isThieuNhi = true;
+      } else if (r.dob) {
+        const age = currentYear - new Date(r.dob).getFullYear();
+        if (age < 16) isThieuNhi = true;
+      }
+      
+      if (isThieuNhi) thieuNhi++;
+    });
+
     res.status(200).json({
-      overview: {
-        totalHouseholds,
-        totalResidents,
-        zaloJoined,
-        zaloNotJoined: totalHouseholds - zaloJoined,
+      overview: { 
+        totalHouseholds, 
+        totalResidents, 
+        zaloJoined, 
+        zaloNotJoined,
+        male: nam,
+        female: nu,
+        doanVien,
+        thieuNhi
       },
       residency: [
         { name: 'Thường trú', value: thuongTru },
@@ -29,6 +63,6 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       ]
     });
   } catch (error) {
-    res.status(500).json({ message: 'Lỗi khi lấy dữ liệu thống kê' });
+    res.status(500).json({ message: 'Lỗi server', error });
   }
 };
