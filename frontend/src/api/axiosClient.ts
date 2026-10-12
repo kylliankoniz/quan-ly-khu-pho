@@ -1,9 +1,7 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-  // Thay đường link bên dưới bằng link thật mà Render vừa cấp cho bạn
-  // Ví dụ: 'https://quanlykhupho-api.onrender.com/api'
-  baseURL: ' https://quan-ly-khu-pho-api.onrender.com', 
+  baseURL: ' https://quan-ly-khu-pho-api.onrender.com/api', 
   headers: {
     'Content-Type': 'application/json',
   },
