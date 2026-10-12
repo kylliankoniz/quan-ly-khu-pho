@@ -33,7 +33,6 @@ const removeAccents = (str?: string) => {
 
 const HouseholdDetail = () => {
   const { searchQuery } = useOutletContext<{ searchQuery: string }>();
-  
   const { id } = useParams<{ id: string }>(); 
   const [residents, setResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +41,9 @@ const HouseholdDetail = () => {
   const [editingResident, setEditingResident] = useState<Resident | null>(null);
   const [selectedResident, setSelectedResident] = useState<Resident | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Lấy quyền của người dùng hiện tại từ localStorage
+  const userRole = localStorage.getItem('userRole');
 
   const fetchResidents = async () => {
     try {
@@ -88,47 +90,33 @@ const HouseholdDetail = () => {
   };
 
   const exportToExcel = () => {
-  // 1. Chuẩn bị dữ liệu với tiêu đề cột tiếng Việt đẹp mắt
-  const dataToExport = filteredResidents.map((person, index) => ({
-    'STT': index + 1,
-    'Họ và Tên': person.fullName,
-    'Giới tính': person.gender || '',
-    'Ngày sinh': person.dob ? new Date(person.dob).toLocaleDateString('vi-VN') : '',
-    'Số CCCD': person.cccd || '',
-    'Nghề nghiệp/Học tập': person.occupation || '',
-    'Số điện thoại': person.phone || '',
-    'Quan hệ': person.relationship,
-    'Tình trạng cư trú': person.residencyStatus,
-    'Ghi chú': person.notes || '',
-    'Phân loại (Tags)': person.tags ? person.tags.join(', ') : ''
-  }));
+    const dataToExport = filteredResidents.map((person, index) => ({
+      'STT': index + 1,
+      'Họ và Tên': person.fullName,
+      'Giới tính': person.gender || '',
+      'Ngày sinh': person.dob ? new Date(person.dob).toLocaleDateString('vi-VN') : '',
+      'Số CCCD': person.cccd || '',
+      'Nghề nghiệp/Học tập': person.occupation || '',
+      'Số điện thoại': person.phone || '',
+      'Quan hệ': person.relationship,
+      'Tình trạng cư trú': person.residencyStatus,
+      'Ghi chú': person.notes || '',
+      'Phân loại (Tags)': person.tags ? person.tags.join(', ') : ''
+    }));
 
-  // 2. Tạo WorkSheet và WorkBook
-  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách Nhân khẩu');
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách Nhân khẩu');
 
-  // 3. Tự động chỉnh độ rộng cột cho dễ nhìn
-  const wscols = [
-    { wch: 5 },  // STT
-    { wch: 25 }, // Họ tên
-    { wch: 10 }, // Giới tính
-    { wch: 15 }, // Ngày sinh
-    { wch: 15 }, // CCCD
-    { wch: 20 }, // Nghề nghiệp
-    { wch: 15 }, // SĐT
-    { wch: 15 }, // Quan hệ
-    { wch: 15 }, // Tình trạng
-    { wch: 25 }, // Ghi chú
-    { wch: 20 }  // Tags
-  ];
-  worksheet['!cols'] = wscols;
+    const wscols = [
+      { wch: 5 }, { wch: 25 }, { wch: 10 }, { wch: 15 }, { wch: 15 },
+      { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 20 }
+    ];
+    worksheet['!cols'] = wscols;
 
-  // 4. Xuất file và tải xuống
-  XLSX.writeFile(workbook, `Danh_Sach_Nhan_Khau_To_56_57.xlsx`);
-};
+    XLSX.writeFile(workbook, `Danh_Sach_Nhan_Khau_Ho.xlsx`);
+  };
 
-  // 2. Logic lọc nhân khẩu đã được chuẩn hóa không dấu
   const filteredResidents = residents.filter((person) => {
     const query = removeAccents(searchQuery);
     
@@ -158,21 +146,25 @@ const HouseholdDetail = () => {
             <p className="text-gray-500 mt-1 text-sm font-medium">Danh sách nhân khẩu hiện tại</p>
           </div>
         </div>
-        <div className="flex gap-3">
-      <button 
-        onClick={exportToExcel}
-        className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-4 py-2.5 rounded-full font-medium hover:bg-emerald-100 transition-all duration-200 flex items-center gap-2"
-      >
-        <Download size={18} /> Xuất Excel
-      </button>
-      
-      <button 
-        onClick={openAddModal}
-        className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all duration-200 flex items-center gap-2"
-      >
-        <UserPlus size={18} /> Thêm Nhân Khẩu
-      </button>
-    </div>
+
+        {/* Chỉ hiển thị nút Xuất và Thêm khi là admin */}
+        {userRole === 'admin' && (
+          <div className="flex gap-3">
+            <button 
+              onClick={exportToExcel}
+              className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-4 py-2.5 rounded-full font-medium hover:bg-emerald-100 transition-all duration-200 flex items-center gap-2"
+            >
+              <Download size={18} /> Xuất Excel
+            </button>
+            
+            <button 
+              onClick={openAddModal}
+              className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all duration-200 flex items-center gap-2"
+            >
+              <UserPlus size={18} /> Thêm Nhân Khẩu
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Danh sách Nhân khẩu */}
@@ -238,20 +230,25 @@ const HouseholdDetail = () => {
                   </div>
 
                   <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
-                    <button 
-                      onClick={(e) => openEditModal(e, person)}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                      title="Chỉnh sửa"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button 
-                      onClick={(e) => handleDelete(e, person._id, person.fullName)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                      title="Xóa"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {/* Chỉ hiển thị nút Sửa/Xóa khi là admin */}
+                    {userRole === 'admin' && (
+                      <>
+                        <button 
+                          onClick={(e) => openEditModal(e, person)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                          title="Chỉnh sửa"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={(e) => handleDelete(e, person._id, person.fullName)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                          title="Xóa"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </>
+                    )}
                     <div className="p-2 text-gray-300 ml-1 hidden md:block">
                       <ChevronRight size={20} />
                     </div>
@@ -264,7 +261,7 @@ const HouseholdDetail = () => {
         )}
       </div>
 
-      {id && (
+      {userRole === 'admin' && id && (
         <ResidentModal 
           isOpen={isModalOpen} 
           onClose={() => {

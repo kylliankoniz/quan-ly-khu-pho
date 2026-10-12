@@ -19,8 +19,10 @@ const Login = () => {
       // Gọi API Đăng nhập thật từ Backend
       const { data } = await axiosClient.post('/auth/login', { username, password });
       
-      // Lưu token thật vào trình duyệt
+      // Lưu token và quyền (role) vào trình duyệt
       localStorage.setItem('token', data.token); 
+      localStorage.setItem('userRole', data.role); // Đã thêm dòng này để lưu quyền
+      
       navigate('/'); // Chuyển hướng vào trang chủ
       
     } catch (err: any) {

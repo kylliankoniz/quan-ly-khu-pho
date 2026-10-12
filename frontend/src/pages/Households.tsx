@@ -32,6 +32,9 @@ const Households = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHousehold, setEditingHousehold] = useState<Household | null>(null);
 
+  // Lấy quyền của người dùng hiện tại từ localStorage
+  const userRole = localStorage.getItem('userRole');
+
   const fetchHouseholds = async () => {
     try {
       const { data } = await axiosClient.get('/households');
@@ -124,22 +127,24 @@ const Households = () => {
           <p className="text-gray-500 mt-1.5 text-sm font-medium">Quản lý và thao tác dữ liệu Tổ 56 & 57</p>
         </div>
         
-        {/* Khu vực nút bấm */}
-        <div className="flex gap-3">
-          <button 
-            onClick={exportAllResidents}
-            className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-4 py-2.5 rounded-full font-medium hover:bg-emerald-100 transition-all duration-200 flex items-center gap-2"
-          >
-            <Download size={18} /> Xuất Excel Toàn Bộ
-          </button>
+        {/* Khu vực nút bấm: Chỉ hiện khi người dùng là admin */}
+        {userRole === 'admin' && (
+          <div className="flex gap-3">
+            <button 
+              onClick={exportAllResidents}
+              className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-4 py-2.5 rounded-full font-medium hover:bg-emerald-100 transition-all duration-200 flex items-center gap-2"
+            >
+              <Download size={18} /> Xuất Excel Toàn Bộ
+            </button>
 
-          <button 
-            onClick={() => { setEditingHousehold(null); setIsModalOpen(true); }}
-            className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all duration-200"
-          >
-            + Thêm Hộ Mới
-          </button>
-        </div>
+            <button 
+              onClick={() => { setEditingHousehold(null); setIsModalOpen(true); }}
+              className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all duration-200"
+            >
+              + Thêm Hộ Mới
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Grid Danh sách */}
@@ -168,22 +173,25 @@ const Households = () => {
                   </h3>
                 </div>
                 
-                <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
-                  <button 
-                    onClick={(e) => { e.preventDefault(); setEditingHousehold(hh); setIsModalOpen(true); }} 
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                    title="Chỉnh sửa"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button 
-                    onClick={(e) => handleDeleteHousehold(e, hh._id, hh.houseNumber)} 
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                    title="Xóa"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+                {/* Khu vực thao tác Sửa/Xóa: Chỉ hiện khi người dùng là admin */}
+                {userRole === 'admin' && (
+                  <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity duration-200">
+                    <button 
+                      onClick={(e) => { e.preventDefault(); setEditingHousehold(hh); setIsModalOpen(true); }} 
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                      title="Chỉnh sửa"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button 
+                      onClick={(e) => handleDeleteHousehold(e, hh._id, hh.houseNumber)} 
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                      title="Xóa"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                )}
               </div>
               
               {/* Card Body */}
@@ -228,7 +236,9 @@ const Households = () => {
         )}
       </div>
 
-      <HouseholdModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHousehold(null); }} onSuccess={fetchHouseholds} editData={editingHousehold} />
+      {userRole === 'admin' && (
+        <HouseholdModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingHousehold(null); }} onSuccess={fetchHouseholds} editData={editingHousehold} />
+      )}
     </div>
   );
 };

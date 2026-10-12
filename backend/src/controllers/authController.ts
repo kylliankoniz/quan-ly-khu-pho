@@ -8,50 +8,58 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
     
-    // Tìm user trong DB
     const user = await User.findOne({ username });
     if (!user) {
       res.status(401).json({ message: 'Tài khoản không tồn tại!' });
       return;
     }
 
-    // So sánh mật khẩu (đã mã hóa)
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       res.status(401).json({ message: 'Mật khẩu không chính xác!' });
       return;
     }
 
-    // Tạo JWT Token có thời hạn 1 ngày
     const token = jwt.sign(
-      { id: user._id }, 
+      { id: user._id, role: user.role }, 
       process.env.JWT_SECRET || 'fallback_secret_key', 
       { expiresIn: '1d' }
     );
 
-    res.json({ token, username: user.username });
+    // Gửi kèm role về cho Frontend
+    res.json({ token, username: user.username, role: user.role });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
 
-// 2. API Khởi tạo tài khoản Admin đầu tiên (Chỉ dùng 1 lần)
+// 2. API Khởi tạo tài khoản
 export const initAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
-    const adminExists = await User.findOne({ username: 'admin' });
-    if (adminExists) {
-      res.status(400).json({ message: 'Tài khoản admin đã tồn tại!' });
-      return;
-    }
-
-    // Mã hóa mật khẩu "123456"
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('123456', salt);
     
-    const newAdmin = new User({ username: 'admin', password: hashedPassword });
-    await newAdmin.save();
+    // Cập nhật Admin cũ (nếu có) thành role: admin, hoặc tạo mới nếu chưa có
+    const adminExists = await User.findOne({ username: 'admin' });
+    if (!adminExists) {
+      await new User({ username: 'admin', password: hashedPassword, role: 'admin' }).save();
+    } else {
+      await User.updateOne({ username: 'admin' }, { role: 'admin' });
+    }
+
+    // Tạo viewer 1
+    const viewer1Exists = await User.findOne({ username: 'viewer1' });
+    if (!viewer1Exists) {
+      await new User({ username: 'viewer1', password: hashedPassword, role: 'viewer' }).save();
+    }
+
+    // Tạo viewer 2
+    const viewer2Exists = await User.findOne({ username: 'viewer2' });
+    if (!viewer2Exists) {
+      await new User({ username: 'viewer2', password: hashedPassword, role: 'viewer' }).save();
+    }
     
-    res.status(201).json({ message: 'Đã tạo tài khoản admin (123456) thành công!' });
+    res.status(200).json({ message: 'Đã hoàn tất tạo tài khoản admin, viewer1, viewer2. (Mật khẩu: 123456)' });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server' });
   }
