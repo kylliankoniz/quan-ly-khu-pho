@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
-import { Phone, Trash2, Edit, ChevronRight } from 'lucide-react';
+import { Phone, Trash2, Edit, ChevronRight, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import HouseholdModal from '../components/HouseholdModal';
 
 interface Household {
@@ -9,7 +10,7 @@ interface Household {
   houseNumber: string;
   precinct: number;
   notes?: string;
-  headOfHousehold?: { fullName: string; phone: string; cccd?: string }; // Đã thêm cccd
+  headOfHousehold?: { fullName: string; phone: string; cccd?: string }; 
   zaloGroupJoined: boolean;
 }
 
@@ -59,7 +60,48 @@ const Households = () => {
     }
   };
 
-  // 2. Logic Lọc dữ liệu thông minh (đã bỏ dấu)
+  // Logic Xuất toàn bộ nhân khẩu ra Excel
+  const exportAllResidents = async () => {
+    try {
+      const { data: allResidents } = await axiosClient.get('/residents');
+      
+      if (allResidents.length === 0) {
+        alert('Chưa có dữ liệu nhân khẩu nào trong hệ thống!');
+        return;
+      }
+
+      const dataToExport = allResidents.map((person: any, index: number) => ({
+        'STT': index + 1,
+        'Họ và Tên': person.fullName,
+        'Giới tính': person.gender || '',
+        'Ngày sinh': person.dob ? new Date(person.dob).toLocaleDateString('vi-VN') : '',
+        'Số CCCD': person.cccd || '',
+        'Nghề nghiệp/Học tập': person.occupation || '',
+        'Số điện thoại': person.phone || '',
+        'Quan hệ': person.relationship,
+        'Tình trạng cư trú': person.residencyStatus,
+        'Ghi chú': person.notes || '',
+        'Phân loại (Tags)': person.tags ? person.tags.join(', ') : ''
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Toàn bộ Nhân khẩu');
+
+      // Định dạng độ rộng cột
+      worksheet['!cols'] = [
+        { wch: 5 }, { wch: 25 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, 
+        { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 20 }
+      ];
+
+      XLSX.writeFile(workbook, `Tong_Hop_Nhan_Khau_To_56_57.xlsx`);
+    } catch (error) {
+      console.error('Lỗi khi xuất toàn bộ:', error);
+      alert('Có lỗi xảy ra khi tải dữ liệu xuất Excel!');
+    }
+  };
+
+  // Logic Lọc dữ liệu thông minh (đã bỏ dấu)
   const filteredHouseholds = households.filter((hh) => {
     const query = removeAccents(searchQuery);
     
@@ -81,12 +123,23 @@ const Households = () => {
           <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Danh sách Hộ gia đình</h2>
           <p className="text-gray-500 mt-1.5 text-sm font-medium">Quản lý và thao tác dữ liệu Tổ 56 & 57</p>
         </div>
-        <button 
-          onClick={() => { setEditingHousehold(null); setIsModalOpen(true); }}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all duration-200"
-        >
-          + Thêm Hộ Mới
-        </button>
+        
+        {/* Khu vực nút bấm */}
+        <div className="flex gap-3">
+          <button 
+            onClick={exportAllResidents}
+            className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-4 py-2.5 rounded-full font-medium hover:bg-emerald-100 transition-all duration-200 flex items-center gap-2"
+          >
+            <Download size={18} /> Xuất Excel Toàn Bộ
+          </button>
+
+          <button 
+            onClick={() => { setEditingHousehold(null); setIsModalOpen(true); }}
+            className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all duration-200"
+          >
+            + Thêm Hộ Mới
+          </button>
+        </div>
       </div>
 
       {/* Grid Danh sách */}

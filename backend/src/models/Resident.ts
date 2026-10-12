@@ -2,11 +2,14 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IResident extends Document {
   fullName: string;
-  phone?: string;
+  gender?: string; // Mới thêm: Giới tính
   dob?: Date;
   cccd?: string;
+  phone?: string;
+  occupation?: string; // Mới thêm: Nghề nghiệp / Nơi làm việc / Nơi học tập
   relationship: string;
   residencyStatus: string;
+  notes?: string;
   tags: string[];
   householdId: mongoose.Types.ObjectId;
 }
@@ -17,18 +20,24 @@ const ResidentSchema: Schema = new Schema(
       type: String, 
       required: true 
     },
-    phone: { 
-      type: String 
-      // Đã bỏ required
+    gender: {
+      type: String,
+      enum: ['Nam', 'Nữ', 'Khác'],
+      default: 'Nam' // Mặc định để tránh lỗi form nếu quên chọn
     },
     dob: { 
       type: Date 
-      // Đã bỏ required
     },
     cccd: { 
       type: String, 
       unique: true, 
-      sparse: true // Quan trọng: Cho phép nhiều document không có CCCD mà không bị lỗi trùng lặp
+      sparse: true 
+    },
+    phone: { 
+      type: String 
+    },
+    occupation: {
+      type: String
     },
     relationship: { 
       type: String, 

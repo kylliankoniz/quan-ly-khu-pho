@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useOutletContext } from 'react-router-dom';
-import { ArrowLeft, UserPlus, Phone, Trash2, Edit, User, ChevronRight } from 'lucide-react';
+import { ArrowLeft, UserPlus, Phone, Trash2, Edit, User, ChevronRight, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import axiosClient from '../api/axiosClient';
 import ResidentModal from '../components/ResidentModal';
 import ResidentDetailModal from '../components/ResidentDetailModal';
@@ -8,7 +9,9 @@ import ResidentDetailModal from '../components/ResidentDetailModal';
 interface Resident {
   _id: string;
   fullName: string;
+  gender?: string;
   phone?: string;
+  occupation?: string;
   relationship: string;
   residencyStatus: string;
   tags: string[];
@@ -84,6 +87,47 @@ const HouseholdDetail = () => {
     setIsDetailOpen(true);
   };
 
+  const exportToExcel = () => {
+  // 1. Chuẩn bị dữ liệu với tiêu đề cột tiếng Việt đẹp mắt
+  const dataToExport = filteredResidents.map((person, index) => ({
+    'STT': index + 1,
+    'Họ và Tên': person.fullName,
+    'Giới tính': person.gender || '',
+    'Ngày sinh': person.dob ? new Date(person.dob).toLocaleDateString('vi-VN') : '',
+    'Số CCCD': person.cccd || '',
+    'Nghề nghiệp/Học tập': person.occupation || '',
+    'Số điện thoại': person.phone || '',
+    'Quan hệ': person.relationship,
+    'Tình trạng cư trú': person.residencyStatus,
+    'Ghi chú': person.notes || '',
+    'Phân loại (Tags)': person.tags ? person.tags.join(', ') : ''
+  }));
+
+  // 2. Tạo WorkSheet và WorkBook
+  const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách Nhân khẩu');
+
+  // 3. Tự động chỉnh độ rộng cột cho dễ nhìn
+  const wscols = [
+    { wch: 5 },  // STT
+    { wch: 25 }, // Họ tên
+    { wch: 10 }, // Giới tính
+    { wch: 15 }, // Ngày sinh
+    { wch: 15 }, // CCCD
+    { wch: 20 }, // Nghề nghiệp
+    { wch: 15 }, // SĐT
+    { wch: 15 }, // Quan hệ
+    { wch: 15 }, // Tình trạng
+    { wch: 25 }, // Ghi chú
+    { wch: 20 }  // Tags
+  ];
+  worksheet['!cols'] = wscols;
+
+  // 4. Xuất file và tải xuống
+  XLSX.writeFile(workbook, `Danh_Sach_Nhan_Khau_To_56_57.xlsx`);
+};
+
   // 2. Logic lọc nhân khẩu đã được chuẩn hóa không dấu
   const filteredResidents = residents.filter((person) => {
     const query = removeAccents(searchQuery);
@@ -114,12 +158,21 @@ const HouseholdDetail = () => {
             <p className="text-gray-500 mt-1 text-sm font-medium">Danh sách nhân khẩu hiện tại</p>
           </div>
         </div>
-        <button 
-          onClick={openAddModal}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all duration-200 flex items-center gap-2"
-        >
-          <UserPlus size={18} /> Thêm Nhân Khẩu
-        </button>
+        <div className="flex gap-3">
+      <button 
+        onClick={exportToExcel}
+        className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-4 py-2.5 rounded-full font-medium hover:bg-emerald-100 transition-all duration-200 flex items-center gap-2"
+      >
+        <Download size={18} /> Xuất Excel
+      </button>
+      
+      <button 
+        onClick={openAddModal}
+        className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-medium hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/20 active:scale-95 transition-all duration-200 flex items-center gap-2"
+      >
+        <UserPlus size={18} /> Thêm Nhân Khẩu
+      </button>
+    </div>
       </div>
 
       {/* Danh sách Nhân khẩu */}
