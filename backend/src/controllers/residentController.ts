@@ -98,3 +98,13 @@ export const deleteResident = async (req: Request, res: Response): Promise<void>
     res.status(500).json({ message: 'Lỗi khi xóa nhân khẩu' });
   }
 };
+
+// Lấy toàn bộ nhân khẩu (Dành cho chức năng Xuất Excel)
+export const getAllResidents = async (req: Request, res: Response) => {
+  try {
+    const residents = await Resident.find();
+    res.status(200).json(residents);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi khi lấy danh sách nhân khẩu', error });
+  }
+};
