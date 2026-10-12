@@ -123,6 +123,7 @@ export default function ResidentModal({ isOpen, onClose, onSuccess, householdId,
                     <option value="Chủ hộ">Chủ hộ</option>
                     <option value="Chồng">Chồng</option>
                     <option value="Vợ">Vợ</option>
+                    <option value="Em">Em</option>
                     <option value="Con">Con</option>
                     <option value="Cháu">Cháu</option>
                     <option value="Cha">Cha</option>
